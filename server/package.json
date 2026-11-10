@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "nodemon index.js",
-    "check": "node --check index.js && node --check scripts/create-admin.js && node --check scripts/run-local-mongo.js",
+    "check": "node --check index.js && node --check admin-account.js && node --check scripts/database.js && node --check scripts/run-local-mongo.js",
     "mongo:local": "node scripts/run-local-mongo.js",
     "test": "node --test test/*.test.js",
     "import:db": "node scripts/database.js import",

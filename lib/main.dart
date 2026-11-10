@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'api_client.dart';
+import 'app_theme.dart';
 import 'auth_screen.dart';
 import 'users_screen.dart';
 
@@ -22,14 +23,7 @@ class _UserAdminAppState extends State<UserAdminApp> {
     return MaterialApp(
       title: 'Quản lý người dùng',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2855B8)),
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF6F8FC),
-        inputDecorationTheme: const InputDecorationTheme(
-          border: OutlineInputBorder(),
-        ),
-      ),
+      theme: buildAppTheme(),
       home: _signedIn
           ? UsersScreen(
               api: _api,

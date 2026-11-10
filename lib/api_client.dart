@@ -29,7 +29,6 @@ class ApiClient {
 
   final http.Client _client;
   String? token;
-  String? adminEmail;
 
   Uri _url(String path) => Uri.parse('$baseUrl/api$path');
   Map<String, String> get _headers => {
@@ -37,20 +36,18 @@ class ApiClient {
     if (token != null) 'Authorization': 'Bearer $token',
   };
 
-  Future<void> login(String email, String password) async {
+  Future<void> login(String username, String password) async {
     final response = await _client.post(
       _url('/login'),
       headers: _headers,
-      body: jsonEncode({'email': email, 'matkhau': password}),
+      body: jsonEncode({'taikhoan': username, 'matkhau': password}),
     );
     final data = _decode(response);
     token = data['token'] as String;
-    adminEmail = email.trim().toLowerCase();
   }
 
   void logout() {
     token = null;
-    adminEmail = null;
   }
 
   Future<List<ManagedUser>> listUsers() async {
@@ -70,7 +67,8 @@ class ApiClient {
         'hoten': draft.fullName,
         'matkhau': draft.password,
         if (draft.imageBytes != null)
-          'hinhanh': 'data:${draft.imageMimeType ?? 'image/jpeg'};base64,${base64Encode(draft.imageBytes!)}',
+          'hinhanh':
+              'data:${draft.imageMimeType ?? 'image/jpeg'};base64,${base64Encode(draft.imageBytes!)}',
       }),
     );
     return (_decode(response)['user'] as Map<String, dynamic>)['_id'] as String;
@@ -85,7 +83,8 @@ class ApiClient {
         'hoten': draft.fullName,
         if (draft.password.isNotEmpty) 'matkhau': draft.password,
         if (draft.imageBytes != null)
-          'hinhanh': 'data:${draft.imageMimeType ?? 'image/jpeg'};base64,${base64Encode(draft.imageBytes!)}',
+          'hinhanh':
+              'data:${draft.imageMimeType ?? 'image/jpeg'};base64,${base64Encode(draft.imageBytes!)}',
       }),
     );
     _decode(response);

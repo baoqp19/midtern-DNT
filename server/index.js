@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const { rateLimit } = require('express-rate-limit');
 const mongoose = require('mongoose');
 const { connectDb, disconnectDb } = require('./db');
+const adminAccount = require('./admin-account');
 
 function validateSecret(secret) {
   if (!secret || secret.length < 32) {
@@ -80,9 +81,8 @@ function validatedImage(body) {
   return { hinhanh: body.hinhanh };
 }
 
-function createApp(User, secret, adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com') {
+function createApp(User, secret) {
   validateSecret(secret);
-  adminEmail = adminEmail.trim().toLowerCase();
   const app = express();
   app.disable('x-powered-by');
   app.use(cors());
@@ -92,11 +92,12 @@ function createApp(User, secret, adminEmail = process.env.ADMIN_EMAIL || 'admin@
     try {
       const match = /^Bearer (.+)$/.exec(req.headers.authorization || '');
       if (!match) throw httpError(401, 'Vui lòng đăng nhập.');
-      const payload = jwt.verify(match[1], secret, { algorithms: ['HS256'] });
-      if (!mongoose.isObjectIdOrHexString(payload.sub)) throw httpError(401, 'Phiên đăng nhập không hợp lệ.');
-      const user = await User.findById(payload.sub).select('email').lean();
-      if (!user || user.email !== adminEmail) throw httpError(403, 'Cần tài khoản admin.');
-      req.admin = user;
+      const payload = jwt.verify(match[1], secret, {
+        algorithms: ['HS256'], issuer: 'giuaki2-admin', audience: 'giuaki2-api',
+      });
+      if (payload.sub !== 'fixed-admin' || payload.scope !== 'admin') {
+        throw httpError(403, 'Cần tài khoản admin.');
+      }
       next();
     } catch (error) {
       next(error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError'
@@ -106,13 +107,16 @@ function createApp(User, secret, adminEmail = process.env.ADMIN_EMAIL || 'admin@
 
   app.post('/api/login', rateLimit({ windowMs: 15 * 60 * 1000, limit: 10 }), async (req, res, next) => {
     try {
-      const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+      const username = typeof req.body.taikhoan === 'string' ? req.body.taikhoan.trim() : '';
       const matkhau = req.body.matkhau;
-      const user = email === adminEmail ? await User.findOne({ email }).select('+matkhau') : null;
-      if (!user || typeof matkhau !== 'string' || !await bcrypt.compare(matkhau, user.matkhau)) {
-        throw httpError(401, 'Email hoặc mật khẩu không đúng.');
+      if (username !== adminAccount.username || typeof matkhau !== 'string'
+          || !await bcrypt.compare(matkhau, adminAccount.passwordHash)) {
+        throw httpError(401, 'Tài khoản hoặc mật khẩu không đúng.');
       }
-      const token = jwt.sign({}, secret, { subject: user._id.toString(), expiresIn: '8h', algorithm: 'HS256' });
+      const token = jwt.sign({ scope: 'admin' }, secret, {
+        subject: 'fixed-admin', expiresIn: '8h', algorithm: 'HS256',
+        issuer: 'giuaki2-admin', audience: 'giuaki2-api',
+      });
       res.json({ token });
     } catch (error) { next(error); }
   });
@@ -137,12 +141,10 @@ function createApp(User, secret, adminEmail = process.env.ADMIN_EMAIL || 'admin@
   app.put('/api/users/:id', adminOnly, async (req, res, next) => {
     try {
       const id = idFrom(req);
-      if (id === req.admin._id.toString()) throw httpError(400, 'Không sửa tài khoản admin đang đăng nhập.');
       const { email, hoten, matkhau } = validateBody(req.body, false);
-      if (email === adminEmail) throw httpError(409, 'Email admin đã được sử dụng.');
       const update = { email, hoten, ...validatedImage(req.body) };
       if (matkhau !== undefined) update.matkhau = await bcrypt.hash(matkhau, 12);
-      const result = await User.updateOne({ _id: id, email: { $ne: adminEmail } }, { $set: update }, { runValidators: true });
+      const result = await User.updateOne({ _id: id }, { $set: update }, { runValidators: true });
       if (!result.matchedCount) throw httpError(404, 'Không tìm thấy người dùng có thể sửa.');
       res.json({ ok: true });
     } catch (error) { next(error); }
@@ -151,8 +153,7 @@ function createApp(User, secret, adminEmail = process.env.ADMIN_EMAIL || 'admin@
   app.delete('/api/users/:id', adminOnly, async (req, res, next) => {
     try {
       const id = idFrom(req);
-      if (id === req.admin._id.toString()) throw httpError(400, 'Không xóa tài khoản admin đang đăng nhập.');
-      const result = await User.deleteOne({ _id: id, email: { $ne: adminEmail } });
+      const result = await User.deleteOne({ _id: id });
       if (!result.deletedCount) throw httpError(404, 'Không tìm thấy người dùng có thể xóa.');
       res.json({ ok: true });
     } catch (error) { next(error); }

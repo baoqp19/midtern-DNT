@@ -8,14 +8,14 @@ Collection `users` trong database `giuaki2`:
 
 | Trường | Ý nghĩa |
 | --- | --- |
-| `email` | Email duy nhất, dùng để đăng nhập |
-| `fullName` | Họ tên |
-| `passwordHash` | Mật khẩu được băm bằng bcrypt; không lưu mật khẩu gốc |
-| `role` | `admin` hoặc `user` |
-| `avatar`, `avatarContentType` | Dữ liệu ảnh và loại ảnh trong MongoDB, tối đa 5 MB |
-| `createdAt`, `updatedAt` | Thời điểm tạo/cập nhật |
+| `email` | Email người dùng, không trùng lặp |
+| `matkhau` | Mật khẩu được băm bằng bcrypt |
+| `hoten` | Họ tên |
+| `hinhanh` | Ảnh dạng chuỗi Data URI Base64, tối đa 5 MB trước khi mã hóa |
 
-Ảnh được trả qua API có kiểm tra quyền admin. Các thao tác quản lý tài khoản cũng chỉ dành cho admin. MongoDB tạo unique index cho `email`.
+Database chỉ lưu đúng bốn trường trên cùng `_id` do MongoDB tự sinh; không có `role`, timestamps hoặc `__v`. Giao diện che mật khẩu khi hiển thị danh sách.
+
+Tài khoản admin có sẵn: **`admin` / `admin123`**, cấu hình tại `server/admin-account.js`, chỉ dùng đăng nhập và quản lý người dùng. Admin không được lưu trong MongoDB. Các bản ghi trong collection `users` đều là người dùng được quản lý, không thể đăng nhập phân hệ admin. Admin vẫn đăng nhập được khi collection rỗng.
 
 ## Chuẩn bị và chạy API
 
@@ -25,11 +25,28 @@ Collection `users` trong database `giuaki2`:
 
 ```powershell
 npm.cmd install
-node scripts/create-admin.js admin@example.com "matkhau123" "Quản trị viên"
 npm.cmd start
 ```
 
-Tạo admin một lần trước khi đăng nhập. Chạy lại lệnh `create-admin` với cùng email sẽ cập nhật tên và mật khẩu của admin.
+Mở `http://localhost:3000` và đăng nhập bằng `admin` / `admin123`.
+
+## File cơ sở dữ liệu để nộp
+
+`database/users.json` có hai bản ghi mẫu, mỗi bản ghi chỉ gồm `email`, `matkhau`, `hoten`, `hinhanh`. Nhập file bằng chức năng Import JSON của Compass hoặc chạy trong thư mục `server`:
+
+```powershell
+npm.cmd run import:db
+```
+
+File chỉ chứa người dùng mẫu, không chứa tài khoản admin. Dữ liệu này được đưa lên database khi Bảo chủ động nhập.
+
+Sau khi nhập dữ liệu để demo, xuất lại file CSDL dùng để nộp:
+
+```powershell
+npm.cmd run export:db
+```
+
+Lệnh xuất ghi `database/users.json` với đúng bốn trường, gồm cả dữ liệu hình ảnh. Bài nộp kèm file này và link video demo đăng nhập, thêm/hiển thị/sửa/xóa trên web, chọn ảnh và hiển thị thông tin trên điện thoại.
 
 Để dùng cùng dữ liệu với Compass, cấu hình server và Compass bằng cùng URI Atlas. `MONGODB_URI` chỉ chứa URI sau một dấu `=`; thay phần mật khẩu mẫu bằng mật khẩu database user. `MONGODB_DB=giuaki2` chọn database, collection người dùng là `users`.
 
@@ -62,6 +79,6 @@ flutter test
 flutter build web
 ```
 
-Kiểm thử API dùng một MongoDB thử riêng, kiểm tra đăng nhập, CRUD, email trùng, đổi mật khẩu, bảo vệ admin và nội dung ảnh. Lần chạy đầu có thể tải binary MongoDB phục vụ kiểm thử.
+Kiểm thử API dùng một MongoDB thử riêng, kiểm tra admin đăng nhập độc lập với CSDL, CRUD, email trùng, đổi mật khẩu và nội dung ảnh. Lần chạy đầu có thể tải binary MongoDB phục vụ kiểm thử.
 
 Ứng dụng trước đây dùng Firebase; phần Firebase đã được gỡ khỏi mã nguồn. Dữ liệu sản phẩm cũ không phù hợp với collection người dùng mới, nên không tự động chuyển sang MongoDB.

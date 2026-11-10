@@ -17,14 +17,18 @@ void main() {
         }
         return http.Response(
           jsonEncode({
-            'user': {'id': 'user-id'},
+            'user': {'_id': 'user-id'},
           }),
           201,
         );
       }),
     );
 
-    await api.login('admin@example.com', 'admin-password');
+    await api.login('admin', 'admin123');
+    expect(jsonDecode(requests.first.body), {
+      'taikhoan': 'admin',
+      'matkhau': 'admin123',
+    });
     final id = await api.createUser(
       const UserDraft(
         email: 'bao@example.com',
@@ -40,9 +44,9 @@ void main() {
     expect(requests.last.headers['authorization'], 'Bearer sample-token');
     final body = jsonDecode(requests.last.body) as Map<String, dynamic>;
     expect(body['email'], 'bao@example.com');
-    expect(body['fullName'], 'Nguyễn Bảo');
-    expect(body['password'], 'secret123');
-    expect(body['avatarBase64'], '/9j/');
-    expect(body['avatarContentType'], 'image/jpeg');
+    expect(body['hoten'], 'Nguyễn Bảo');
+    expect(body['matkhau'], 'secret123');
+    expect(body['hinhanh'], 'data:image/jpeg;base64,/9j/');
+    expect(body.keys.toSet(), {'email', 'matkhau', 'hoten', 'hinhanh'});
   });
 }

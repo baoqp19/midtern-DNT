@@ -6,7 +6,7 @@ import 'package:giuaki2/managed_user.dart';
 import 'package:giuaki2/user_editor.dart';
 
 void main() {
-  testWidgets('Admin login asks for email and password', (tester) async {
+  testWidgets('Admin login asks for username and password', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: AuthScreen(api: ApiClient(), onLoggedIn: () {}),
@@ -14,7 +14,7 @@ void main() {
     );
     expect(find.text('Quản lý người dùng'), findsOneWidget);
     expect(find.text('Đăng nhập'), findsOneWidget);
-    expect(find.text('Email'), findsOneWidget);
+    expect(find.text('Tài khoản admin'), findsOneWidget);
     expect(find.text('Mật khẩu'), findsOneWidget);
   });
 
