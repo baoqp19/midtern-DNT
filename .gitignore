@@ -1,0 +1,9 @@
+.appdata/
+.pub-cache/
+.npm-cache/
+server/.env
+server/node_modules/
+server/.mongodb-data/
+server/.mongodb-binaries/
+build/
+.dart_tool/
